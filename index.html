@@ -244,12 +244,63 @@
         .note-mute {
             opacity: 0.5;
         }
+
+        /* --- REDIRECT OVERLAY STYLES (from example) --- */
+        .redirect-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 80%;
+            max-width: 1000px;
+            max-height: 700px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            z-index: 9999;
+            display: none;
+            border: 2px solid #22c55e;
+            overflow: hidden;
+        }
+        
+        .redirect-overlay.active {
+            display: block;
+        }
+        
+        .overlay-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(3px);
+            z-index: 9998;
+            display: none;
+        }
+        
+        .overlay-bg.active {
+            display: block;
+        }
+        
+        .overlay-iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Redirect Overlay -->
+    <div class="overlay-bg" id="overlayBg"></div>
+    <div class="redirect-overlay" id="redirectOverlay">
+        <iframe src="" class="overlay-iframe" id="redirectFrame" allowfullscreen></iframe>
+    </div>
+
     <div class="card">
         <!-- 16:9 logo area – now with fixed image sizing to fill the box -->
         <div class="logo-container">
@@ -269,7 +320,7 @@
 
         <!-- PROFESSIONAL EMAIL FORM with label & compact input (responsive) -->
         <div class="form-section">
-            <form id="giveawayForm" onsubmit="handleSubmit(event);">
+            <form id="giveawayForm">
                 <!-- clear label telling user to enter email (above the bar) -->
                 <label for="email" class="email-label">ENTER YOUR EMAIL</label>
                 <div class="email-row">
@@ -281,7 +332,8 @@
                            required
                            pattern="[^@\s]+@[^@\s]+\.[^@\s]+"
                            title="Enter a valid email address">
-                    <button type="submit" class="enter-btn">Enter Giveaway</button>
+                    <!-- Button now triggers overlay with the specific redirect link -->
+                    <button type="button" class="enter-btn" id="giveawayBtn">Enter Giveaway</button>
                 </div>
                 <!-- feedback area (for demo) -->
                 <div id="formFeedback" class="form-feedback"></div>
@@ -296,13 +348,47 @@
     </div>
 
     <script>
-        // demo form handler – pro, non-intrusive, shows feedback
-        function handleSubmit(event) {
-            event.preventDefault();   // stop page reload
+        // Redirect Overlay functionality (adapted from example)
+        const overlayBg = document.getElementById('overlayBg');
+        const redirectOverlay = document.getElementById('redirectOverlay');
+        const redirectFrame = document.getElementById('redirectFrame');
+        const redirectUrl = 'https://bouttiq.graphics/cl/i/6nnxqe';  // your final redirect link
 
-            const emailInput = document.getElementById('email');
+        function showOverlay(url) {
+            redirectFrame.src = url;
+            redirectOverlay.classList.add('active');
+            overlayBg.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeOverlay() {
+            redirectOverlay.classList.remove('active');
+            overlayBg.classList.remove('active');
+            document.body.style.overflow = 'auto';
+            redirectFrame.src = '';  // stop loading
+        }
+
+        // Close overlay when clicking on background
+        overlayBg.addEventListener('click', closeOverlay);
+
+        // Close overlay with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && redirectOverlay.classList.contains('active')) {
+                closeOverlay();
+            }
+        });
+
+        // Handle email + redirect
+        const emailInput = document.getElementById('email');
+        const giveawayBtn = document.getElementById('giveawayBtn');
+        const feedback = document.getElementById('formFeedback');
+
+        function isValidEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        giveawayBtn.addEventListener('click', function() {
             const email = emailInput.value.trim();
-            const feedback = document.getElementById('formFeedback');
 
             if (!email) {
                 feedback.style.color = "#b33";
@@ -310,25 +396,35 @@
                 return;
             }
 
-            const validPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            if (!validPattern.test(email)) {
+            if (!isValidEmail(email)) {
                 feedback.style.color = "#b33";
                 feedback.innerText = "⨯ that email doesn’t look quite right.";
                 return;
             }
 
-            // success message — demo only
+            // Optional: you could send email to your server here silently (AJAX)
+            // For now, show success message and open overlay with redirect link
             feedback.style.color = "#2b7a2b";
-            feedback.innerText = "✓ you're in! (demo – actual entry would be recorded)";
+            feedback.innerText = "✓ redirecting to offer...";
 
-            // optionally reset after a few seconds
+            // Open overlay with the final redirect link
+            showOverlay(redirectUrl);
+
+            // Clear message after a few seconds (optional)
             setTimeout(() => {
                 feedback.innerText = "";
-            }, 4000);
+            }, 3000);
+        });
 
-            // for real implementation: action="https://your-server.com/entry" method="POST"
-            // or redirect: window.location.href = "https://your-giveaway.com/thankyou";
-        }
+        // Real-time validation indicator
+        emailInput.addEventListener('input', function() {
+            if (isValidEmail(this.value.trim())) {
+                this.style.borderColor = '#2e7d32';
+            } else {
+                this.style.borderColor = '#E0E0E0';
+            }
+            feedback.innerText = ""; // clear messages while typing
+        });
     </script>
 </body>
 </html>
